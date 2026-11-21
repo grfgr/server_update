@@ -12,11 +12,18 @@ set "STEAM_USER=ваш_логин_steam"
 set "SERVER=C:\Program Files (x86)\Steam\steamapps\common\DayZServer"
 rem 1 = заодно обновлять сам сервер DayZ
 set "UPDATE_SERVER=0"
+rem Вебхук Discord для уведомлений об обновлённых модах (пусто = выключено).
+rem Discord: Настройки канала -> Интеграции -> Вебхуки -> Новый вебхук -> Копировать URL
+set "DISCORD_WEBHOOK="
+rem Имя сервера в заголовке уведомления
+set "SERVER_NAME=DayZ сервер"
 rem ---------------------------------------
 
 set "STEAMDIR=%~dp0steamcmd_data"
 set "CONTENT=%STEAMDIR%\steamapps\workshop\content\221100"
 set "LIST=%~dp0mods.txt"
+set "UPDATED=%TEMP%\dayz_updated_mods.txt"
+if exist "%UPDATED%" del "%UPDATED%"
 
 if not exist "%STEAMCMD%" (
   echo [!] Не найден SteamCMD: %STEAMCMD%
@@ -38,14 +45,28 @@ echo === Скачиваю моды из мастерской ===
 echo === Копирую моды на сервер ===
 for /f "usebackq eol=# tokens=1,2" %%A in ("%LIST%") do (
   if exist "%CONTENT%\%%A" (
-    echo   %%B  ^(id %%A^)
+    if exist "%SERVER%\%%B\" (set "STATE=updated") else (set "STATE=new")
     robocopy "%CONTENT%\%%A" "%SERVER%\%%B" /MIR /R:2 /W:2 /NFL /NDL /NJH /NJS /NP >nul
+    rem код robocopy: 0 = без изменений, 1-7 = файлы изменились, 8+ = ошибка
+    set "RC=!errorlevel!"
+    if !RC! GEQ 8 (
+      echo [!] %%B ^(id %%A^): ошибка копирования, код robocopy !RC!
+    ) else if !RC! GEQ 1 (
+      echo   %%B  ^(id %%A^) — обновлён
+      >>"%UPDATED%" echo %%A %%B !STATE!
+    ) else (
+      echo   %%B  ^(id %%A^) — без изменений
+    )
     for %%K in (keys Keys key Key) do (
       if exist "%SERVER%\%%B\%%K" robocopy "%SERVER%\%%B\%%K" "%SERVER%\keys" *.bikey /R:2 /W:2 /NFL /NDL /NJH /NJS /NP >nul
     )
   ) else (
     echo [!] %%B ^(id %%A^) не скачан: проверьте ID и логин
   )
+)
+if exist "%UPDATED%" if defined DISCORD_WEBHOOK (
+  echo === Отправляю уведомление в Discord ===
+  powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0notify_discord.ps1" -Webhook "%DISCORD_WEBHOOK%" -ListFile "%UPDATED%" -ServerName "%SERVER_NAME%"
 )
 echo === Готово ===
 endlocal
