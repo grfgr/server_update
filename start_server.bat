@@ -1,17 +1,21 @@
 @echo off
 rem ==== Обновить моды и запустить сервер DayZ ====
 rem -mod= собирается из mods.txt сам (в том же порядке).
+rem Заодно запускает watch_updates.ps1: он раз в CHECK_MINUTES проверяет моды
+rem и при обновлении делает рестарт через UPDATE_RESTART_DELAY минут.
 setlocal enabledelayedexpansion
 chcp 65001 >nul
 
-rem ---- НАСТРОЙКИ ----
-set "SERVER=C:\Program Files (x86)\Steam\steamapps\common\DayZServer"
-set "PROFILES=profiles"
-set "CONFIG=serverDZ.cfg"
-set "PORT=2302"
-rem 1 = перезапускать сервер, если он упал или выключился по рестарту
-set "AUTO_RESTART=1"
-rem -------------------
+if not exist "%~dp0config.bat" (
+  copy "%~dp0config.example.bat" "%~dp0config.bat" >nul
+  echo Создан config.bat. Откройте его, впишите свои настройки и запустите снова.
+  pause
+  exit /b 1
+)
+call "%~dp0config.bat"
+
+rem фоновая проверка обновлений (вторая копия сама закроется)
+start "DayZ: проверка модов" /min powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0watch_updates.ps1"
 
 :start
 call "%~dp0update_mods.bat"
