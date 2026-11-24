@@ -6,18 +6,12 @@ rem (start_server.bat делает это сам).
 setlocal enabledelayedexpansion
 chcp 65001 >nul
 
-rem ---- НАСТРОЙКИ: поправьте под себя ----
-set "STEAMCMD=C:\steamcmd\steamcmd.exe"
-set "STEAM_USER=ваш_логин_steam"
-set "SERVER=C:\Program Files (x86)\Steam\steamapps\common\DayZServer"
-rem 1 = заодно обновлять сам сервер DayZ
-set "UPDATE_SERVER=0"
-rem Вебхук Discord для уведомлений об обновлённых модах (пусто = выключено).
-rem Discord: Настройки канала -> Интеграции -> Вебхуки -> Новый вебхук -> Копировать URL
-set "DISCORD_WEBHOOK="
-rem Имя сервера в заголовке уведомления
-set "SERVER_NAME=DayZ сервер"
-rem ---------------------------------------
+if not exist "%~dp0config.bat" (
+  echo [!] Нет config.bat: скопируйте config.example.bat в config.bat и впишите настройки
+  pause
+  exit /b 1
+)
+call "%~dp0config.bat"
 
 set "STEAMDIR=%~dp0steamcmd_data"
 set "CONTENT=%STEAMDIR%\steamapps\workshop\content\221100"
